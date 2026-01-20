@@ -8,12 +8,13 @@ const userEmail = "demo@example.com";
 
 export async function DELETE(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect();
+        const { id } = await params;
         const deleted = await Expense.findOneAndDelete({
-            _id: params.id,
+            _id: id,
             userEmail,
         });
 
@@ -29,15 +30,16 @@ export async function DELETE(
 
 export async function PUT(
     req: Request,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         await dbConnect();
+        const { id } = await params;
         const data = await req.json();
 
         // Update the expense
         const updated = await Expense.findOneAndUpdate(
-            { _id: params.id, userEmail },
+            { _id: id, userEmail },
             {
                 amount: data.amount,
                 category: data.category,
