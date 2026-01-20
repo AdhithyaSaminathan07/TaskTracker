@@ -1,8 +1,46 @@
+"use client";
 
 import Link from "next/link";
-import Image from "next/image";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2 } from "lucide-react";
 
 export function LoginContent() {
+    const router = useRouter();
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+
+        const formData = new FormData(e.currentTarget);
+        const email = formData.get("email");
+        const password = formData.get("password");
+
+        try {
+            const res = await fetch("/api/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || "Login failed");
+            }
+
+            // Successful login
+            router.push("/dashboard");
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "An error occurred");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
         <div className="flex min-h-screen w-full iems-center justify-center bg-zinc-50 dark:bg-black font-sans relative overflow-hidden">
             {/* Background Gradients */}
@@ -20,7 +58,12 @@ export function LoginContent() {
                         </p>
                     </div>
 
-                    <form className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        {error && (
+                            <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900 rounded-lg">
+                                {error}
+                            </div>
+                        )}
                         <div>
                             <label
                                 htmlFor="email"
@@ -63,9 +106,14 @@ export function LoginContent() {
 
                         <button
                             type="submit"
-                            className="mt-2 w-full rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-purple-500 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-600/20 active:scale-[0.98]"
+                            disabled={loading}
+                            className="mt-2 w-full flex items-center justify-center rounded-xl bg-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:bg-purple-500 hover:shadow-lg focus:outline-none focus:ring-4 focus:ring-purple-600/20 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Sign In
+                            {loading ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                "Sign In"
+                            )}
                         </button>
                     </form>
 
