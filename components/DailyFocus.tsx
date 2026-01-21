@@ -27,6 +27,7 @@ export function DailyFocus() {
     const [modalCategory, setModalCategory] = useState<string>("All"); // All, Morning, Work, Night
     const [newTaskInput, setNewTaskInput] = useState("");
 
+
     const handleAddTask = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newTaskInput.trim()) return;
@@ -65,6 +66,11 @@ export function DailyFocus() {
 
     useEffect(() => {
         async function fetchTodayFocus() {
+            const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+            if (!userData.id && !userData._id) {
+                setLoading(false);
+                return; // Silently abort, banner handles UI
+            }
             try {
                 const res = await fetch("/api/focus/today", { headers: getHeaders() });
                 const data = await res.json();
@@ -91,6 +97,8 @@ export function DailyFocus() {
     }
 
     async function updateTaskState(updates: Partial<FocusData>) {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        if (!userData.id && !userData._id) return; // Silent abort
         try {
             await fetch("/api/focus/today", {
                 method: "PUT",
@@ -218,7 +226,6 @@ export function DailyFocus() {
 
     return (
         <div className="flex flex-col items-center pb-20 w-full">
-
             {/* Header Date */}
             <div className="mt-4 mb-6 flex items-center gap-2 rounded-full bg-zinc-100 px-4 py-2 text-xs font-medium text-zinc-400 dark:bg-zinc-900">
                 <CalendarDays className="h-3 w-3" />

@@ -82,7 +82,12 @@ export function ExpensesContent() {
     }, []);
 
     useEffect(() => {
-        fetchData();
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        if (userData.id || userData._id) {
+            fetchData();
+        } else {
+            setIsLoading(false);
+        }
     }, [fetchData]);
 
     const handleAddOrUpdateExpense = async (e: React.FormEvent) => {
@@ -117,6 +122,12 @@ export function ExpensesContent() {
             if (res.ok) {
                 resetForm();
                 fetchData(); // Refresh list and stats
+            } else {
+                if (res.status === 401) {
+                    alert("Your session has expired. Please Log Out and Log In again.");
+                } else {
+                    alert("Failed to save expense. Please try again.");
+                }
             }
         } catch (error) {
             console.error("Failed to save", error);
@@ -176,8 +187,12 @@ export function ExpensesContent() {
         setIsDropdownOpen(false);
     };
 
+
+
     return (
         <div className="mx-auto max-w-md lg:max-w-6xl space-y-6 lg:space-y-8 pt-2 lg:pt-4 pb-20 lg:pb-0">
+
+
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 lg:grid-cols-3 gap-2 lg:gap-3 px-1 lg:px-0">

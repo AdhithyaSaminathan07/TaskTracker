@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Focus from "@/models/Focus";
+import mongoose from "mongoose";
 
 // In a real app, you'd get the user email from the session/token.
 // For now, we'll accept it in the request or headers, OR assume a demo user.
@@ -21,7 +22,7 @@ export async function GET(request: Request) {
 
         const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
 
-        const focus = await Focus.findOne({ userId, date: today });
+        const focus = await Focus.findOne({ userId: new mongoose.Types.ObjectId(userId), date: today });
 
         return NextResponse.json({ success: true, data: focus });
     } catch (error) {
@@ -45,10 +46,10 @@ export async function POST(request: Request) {
 
         // Upsert: Create if not exists, otherwise update
         const focus = await Focus.findOneAndUpdate(
-            { userId, date: today },
+            { userId: new mongoose.Types.ObjectId(userId), date: today },
             {
                 userEmail,
-                userId,
+                userId: new mongoose.Types.ObjectId(userId),
                 date: today,
                 mainFocus: title,
                 // isCompleted default false
@@ -100,11 +101,11 @@ export async function PUT(request: Request) {
 
         // Ensure these are present for upsert
         updateData.userEmail = userEmail;
-        updateData.userId = userId;
+        updateData.userId = new mongoose.Types.ObjectId(userId);
         updateData.date = today;
 
         const focus = await Focus.findOneAndUpdate(
-            { userId, date: today },
+            { userId: new mongoose.Types.ObjectId(userId), date: today },
             updateData,
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );

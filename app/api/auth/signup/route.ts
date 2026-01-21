@@ -30,7 +30,14 @@ export async function POST(request: Request) {
             password: hashedPassword,
         });
 
-        return NextResponse.json({ success: true, data: user }, { status: 201 });
+        return NextResponse.json({
+            success: true,
+            data: {
+                id: userId,
+                name: name,
+                email: email
+            }
+        }, { status: 201 });
     } catch (error) {
         console.error("Signup Error:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });

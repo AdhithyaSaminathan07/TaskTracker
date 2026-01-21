@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 // import { getServerSession } from "next-auth"; // Auth not yet installed
 import dbConnect from "@/lib/db";
 import Expense from "@/models/Expense";
+import mongoose from "mongoose";
 
 export async function POST(req: Request) {
     try {
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
 
         const expense = await Expense.create({
             userEmail: userEmail,
-            userId: userId,
+            userId: new mongoose.Types.ObjectId(userId),
             amount: data.amount,
             category: data.category,
             description: data.description,
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
         await dbConnect();
 
         // Fetch recent expenses (last 50)
-        const expenses = await Expense.find({ userId })
+        const expenses = await Expense.find({ userId: new mongoose.Types.ObjectId(userId) })
             .sort({ timestamp: -1 })
             .limit(50);
 

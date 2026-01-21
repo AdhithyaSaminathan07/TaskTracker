@@ -24,6 +24,10 @@ export function WeeklyTracker({ refreshTrigger }: { refreshTrigger: number }) {
 
     useEffect(() => {
         async function fetchWeekData() {
+            const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+            if (!userData.id && !userData._id) {
+                return; // Silent
+            }
             try {
                 const res = await fetch("/api/focus/week", { headers: getHeaders() });
                 const data = await res.json();

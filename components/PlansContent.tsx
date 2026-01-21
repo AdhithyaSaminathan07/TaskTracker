@@ -27,8 +27,15 @@ export function PlansContent() {
         };
     };
 
+
+
     useEffect(() => {
         async function fetchPlan() {
+            const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+            if (!userData.id && !userData._id) {
+                setLoading(false);
+                return;
+            }
             try {
                 const res = await fetch("/api/plans", { headers: getHeaders() });
                 const data = await res.json();
@@ -99,6 +106,7 @@ export function PlansContent() {
             <div className="mx-auto flex w-full max-w-2xl flex-col px-6 pb-24 pt-10">
                 <div className="flex items-center justify-between">
                     <h1 className="text-3xl font-bold text-zinc-900 dark:text-white">Weekly Focus</h1>
+
                     <button onClick={handleSave} className="rounded-xl bg-zinc-900 px-4 py-2 font-bold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200">
                         {saving ? "Saving..." : "Save"}
                     </button>

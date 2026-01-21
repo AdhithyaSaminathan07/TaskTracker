@@ -23,6 +23,11 @@ export function DashboardStats() {
         if (userData.name) setUserName(userData.name);
 
         async function fetchStats() {
+            const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+            if (!userData.id && !userData._id) {
+                setLoading(false);
+                return;
+            }
             try {
                 const res = await fetch("/api/focus/week", { headers: getHeaders() });
                 const data = await res.json();
