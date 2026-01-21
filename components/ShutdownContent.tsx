@@ -11,7 +11,14 @@ export function ShutdownContent() {
     const [loading, setLoading] = useState(false);
     const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({});
 
-    const userEmail = "adhisami2003@gmail.com";
+    const getHeaders = () => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        return {
+            "Content-Type": "application/json",
+            "x-user-email": userData.email || "",
+            "x-user-id": userData.id || userData._id || ""
+        };
+    };
 
     const checklist = [
         "Commit & Push changes 💾",
@@ -35,9 +42,8 @@ export function ShutdownContent() {
         try {
             await fetch("/api/focus/today", {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: getHeaders(),
                 body: JSON.stringify({
-                    email: userEmail,
                     modShutdown: true
                 }),
             });

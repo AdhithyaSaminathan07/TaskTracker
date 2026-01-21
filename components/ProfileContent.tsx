@@ -2,13 +2,23 @@
 
 import { LogOut, User, Settings, Bell, Shield, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 
 export function ProfileContent() {
     const router = useRouter();
 
+    const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+
+    useEffect(() => {
+        const userData = localStorage.getItem("user_data");
+        if (userData) {
+            setUser(JSON.parse(userData));
+        }
+    }, []);
+
     const handleLogout = () => {
-        // Here you would clear tokens/sessions
+        localStorage.removeItem("user_data");
         router.push("/");
     };
 
@@ -22,10 +32,10 @@ export function ProfileContent() {
 
                 <div className="relative z-10 flex flex-col items-center text-center sm:items-start sm:text-left">
                     <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-purple-500 to-pink-500 text-4xl font-bold text-white shadow-xl shadow-purple-500/30">
-                        AD
+                        {user?.name?.[0]?.toUpperCase() || "U"}
                     </div>
-                    <h1 className="text-3xl font-bold leading-tight">Adhithya</h1>
-                    <p className="mt-2 text-white/60">adhisami2003@gmail.com</p>
+                    <h1 className="text-3xl font-bold leading-tight">{user?.name || "User"}</h1>
+                    <p className="mt-2 text-white/60">{user?.email || ""}</p>
                     <div className="mt-4 flex gap-2">
                         <span className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white backdrop-blur-md">
                             <Sparkles className="h-3 w-3 text-yellow-400" />

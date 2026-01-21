@@ -13,17 +13,17 @@ function getWeekStartDate(date: Date) {
 export async function GET(request: Request) {
     try {
         await dbConnect();
-        const { searchParams } = new URL(request.url);
-        const email = searchParams.get("email");
+        const userEmail = request.headers.get("x-user-email");
+        const userId = request.headers.get("x-user-id");
 
-        if (!email) {
-            return NextResponse.json({ error: "Email required" }, { status: 400 });
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const today = new Date();
         const weekStart = getWeekStartDate(today);
 
-        const plan = await WeeklyPlan.findOne({ userEmail: email, weekStartDate: weekStart });
+        const plan = await WeeklyPlan.findOne({ userId, weekStartDate: weekStart });
 
         if (!plan) {
             // Return empty structure if not found (or create? let's just return empty for frontend to handle)
@@ -32,6 +32,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ success: true, data: plan });
     } catch (error) {
+        console.error("Error in GET /api/plans:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
@@ -39,15 +40,23 @@ export async function GET(request: Request) {
 export async function PUT(request: Request) {
     try {
         await dbConnect();
-        const { email, goals } = await request.json();
+        const userEmail = request.headers.get("x-user-email");
+        const userId = request.headers.get("x-user-id");
+
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { goals } = await request.json();
 
         const today = new Date();
         const weekStart = getWeekStartDate(today);
 
         const plan = await WeeklyPlan.findOneAndUpdate(
-            { userEmail: email, weekStartDate: weekStart },
+            { userId, weekStartDate: weekStart },
             {
-                userEmail: email,
+                userEmail,
+                userId,
                 weekStartDate: weekStart,
                 goals: goals
             },
@@ -56,6 +65,7 @@ export async function PUT(request: Request) {
 
         return NextResponse.json({ success: true, data: plan });
     } catch (error) {
+        console.error("Error in PUT /api/plans:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }

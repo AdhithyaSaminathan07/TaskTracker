@@ -1,15 +1,16 @@
-import { NextResponse } from "next/server";
-// import { getServerSession } from "next-auth";
 import dbConnect from "@/lib/db";
 import Expense from "@/models/Expense";
+import { NextResponse } from "next/server";
+import mongoose from "mongoose";
 
 export async function GET(req: Request) {
     try {
-        // const session = await getServerSession();
-        const userEmail = "demo@example.com";
-        // if (!session || !session.user?.email) {
-        //     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-        // }
+        const userEmail = req.headers.get("x-user-email");
+        const userId = req.headers.get("x-user-id");
+
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
 
         await dbConnect();
         const now = new Date();
@@ -29,7 +30,7 @@ export async function GET(req: Request) {
         const monthStart = new Date(nowForMonth.getFullYear(), nowForMonth.getMonth(), 1);
 
         const stats = await Expense.aggregate([
-            { $match: { userEmail } },
+            { $match: { userId: new mongoose.Types.ObjectId(userId) } },
             {
                 $facet: {
                     today: [
@@ -56,6 +57,7 @@ export async function GET(req: Request) {
             month: result.month[0]?.total || 0
         });
     } catch (error) {
+        console.error("Error fetching stats:", error);
         return NextResponse.json({ error: "Error fetching stats" }, { status: 500 });
     }
 }

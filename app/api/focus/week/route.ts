@@ -5,11 +5,11 @@ import Focus from "@/models/Focus";
 export async function GET(request: Request) {
     try {
         await dbConnect();
-        const { searchParams } = new URL(request.url);
-        const email = searchParams.get("email");
+        const userEmail = request.headers.get("x-user-email");
+        const userId = request.headers.get("x-user-id");
 
-        if (!email) {
-            return NextResponse.json({ error: "Email required" }, { status: 400 });
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         // Generate dates for the last 7 days
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
         }
 
         const tasks = await Focus.find({
-            email,
+            userId,
             date: { $in: dates }
         });
 
@@ -38,6 +38,7 @@ export async function GET(request: Request) {
 
         return NextResponse.json({ success: true, data: weekData });
     } catch (error) {
+        console.error("Error in GET /api/focus/week:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }

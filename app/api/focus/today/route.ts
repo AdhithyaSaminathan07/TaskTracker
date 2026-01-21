@@ -12,18 +12,20 @@ import Focus from "@/models/Focus";
 export async function GET(request: Request) {
     try {
         await dbConnect();
-        const { searchParams } = new URL(request.url);
-        const email = searchParams.get("email");
-        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const userEmail = request.headers.get("x-user-email");
+        const userId = request.headers.get("x-user-id");
 
-        if (!email) {
-            return NextResponse.json({ error: "Email required" }, { status: 400 });
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const focus = await Focus.findOne({ userEmail: email, date: today });
+        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+
+        const focus = await Focus.findOne({ userId, date: today });
 
         return NextResponse.json({ success: true, data: focus });
     } catch (error) {
+        console.error("Error in GET /api/focus/today:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
@@ -31,14 +33,22 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
     try {
         await dbConnect();
-        const { email, title } = await request.json();
+        const userEmail = request.headers.get("x-user-email");
+        const userId = request.headers.get("x-user-id");
+
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        const { title } = await request.json();
         const today = new Date().toLocaleDateString('en-CA');
 
         // Upsert: Create if not exists, otherwise update
         const focus = await Focus.findOneAndUpdate(
-            { userEmail: email, date: today },
+            { userId, date: today },
             {
-                userEmail: email,
+                userEmail,
+                userId,
                 date: today,
                 mainFocus: title,
                 // isCompleted default false
@@ -48,6 +58,7 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, data: focus });
     } catch (error) {
+        console.error("Error in POST /api/focus/today:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
@@ -55,8 +66,15 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
     try {
         await dbConnect();
+        const userEmail = request.headers.get("x-user-email");
+        const userId = request.headers.get("x-user-id");
+
+        if (!userEmail || !userId) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
         const {
-            email, isCompleted, notes, reflection,
+            isCompleted, notes, reflection,
             modSystemBoot, modPlanning, modDeepWork, modDebugging,
             modLearning, modHygiene, modAdmin, modShutdown,
             customTasks
@@ -81,17 +99,19 @@ export async function PUT(request: Request) {
         if (typeof customTasks !== 'undefined') updateData.customTasks = customTasks;
 
         // Ensure these are present for upsert
-        updateData.userEmail = email;
+        updateData.userEmail = userEmail;
+        updateData.userId = userId;
         updateData.date = today;
 
         const focus = await Focus.findOneAndUpdate(
-            { userEmail: email, date: today },
+            { userId, date: today },
             updateData,
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
         return NextResponse.json({ success: true, data: focus });
     } catch (error) {
+        console.error("Error in PUT /api/focus/today:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }

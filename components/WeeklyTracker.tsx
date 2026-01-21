@@ -11,12 +11,21 @@ interface DayData {
 
 export function WeeklyTracker({ refreshTrigger }: { refreshTrigger: number }) {
     const [weekData, setWeekData] = useState<DayData[]>([]);
-    const userEmail = "adhisami2003@gmail.com";
+
+
+    const getHeaders = () => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        return {
+            "Content-Type": "application/json",
+            "x-user-email": userData.email || "",
+            "x-user-id": userData.id || userData._id || ""
+        };
+    };
 
     useEffect(() => {
         async function fetchWeekData() {
             try {
-                const res = await fetch(`/api/focus/week?email=${userEmail}`);
+                const res = await fetch("/api/focus/week", { headers: getHeaders() });
                 const data = await res.json();
                 if (data.success) {
                     setWeekData(data.data);
@@ -26,7 +35,7 @@ export function WeeklyTracker({ refreshTrigger }: { refreshTrigger: number }) {
             }
         }
         fetchWeekData();
-    }, [refreshTrigger, userEmail]);
+    }, [refreshTrigger]);
 
     return (
         <div className="flex justify-between gap-1 overflow-x-auto pb-4 sm:justify-start sm:gap-4">

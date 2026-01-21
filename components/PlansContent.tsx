@@ -18,12 +18,19 @@ export function PlansContent() {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const router = useRouter();
-    const userEmail = "adhisami2003@gmail.com";
+    const getHeaders = () => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        return {
+            "Content-Type": "application/json",
+            "x-user-email": userData.email || "",
+            "x-user-id": userData.id || userData._id || ""
+        };
+    };
 
     useEffect(() => {
         async function fetchPlan() {
             try {
-                const res = await fetch(`/api/plans?email=${userEmail}`);
+                const res = await fetch("/api/plans", { headers: getHeaders() });
                 const data = await res.json();
                 if (data.success && data.data && data.data.goals) {
                     setGoals(data.data.goals);
@@ -35,7 +42,7 @@ export function PlansContent() {
             }
         }
         fetchPlan();
-    }, [userEmail]);
+    }, []);
 
     // Scroll to bottom on added
     useEffect(() => {
@@ -66,9 +73,8 @@ export function PlansContent() {
         try {
             await fetch("/api/plans", {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
+                headers: getHeaders(),
                 body: JSON.stringify({
-                    email: userEmail,
                     goals: goals
                 }),
             });

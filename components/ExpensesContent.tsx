@@ -50,11 +50,20 @@ export function ExpensesContent() {
     const activeCatObj = categories.find(c => c.name === activeCategory) || categories[0];
     const ActiveIcon = activeCatObj.icon;
 
+    const getHeaders = () => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        return {
+            "Content-Type": "application/json",
+            "x-user-email": userData.email || "",
+            "x-user-id": userData.id || userData._id || ""
+        };
+    };
+
     const fetchData = useCallback(async () => {
         try {
             const [expRes, statsRes] = await Promise.all([
-                fetch("/api/expenses"),
-                fetch("/api/expenses/stats")
+                fetch("/api/expenses", { headers: getHeaders() }),
+                fetch("/api/expenses/stats", { headers: getHeaders() })
             ]);
 
             if (expRes.ok) {
@@ -93,14 +102,14 @@ export function ExpensesContent() {
                 // Update existing
                 res = await fetch(`/api/expenses/${editingId}`, {
                     method: "PUT",
-                    headers: { "Content-Type": "application/json" },
+                    headers: getHeaders(),
                     body: JSON.stringify(payload),
                 });
             } else {
                 // Create new
                 res = await fetch("/api/expenses", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: getHeaders(),
                     body: JSON.stringify(payload),
                 });
             }
@@ -137,10 +146,11 @@ export function ExpensesContent() {
         try {
             const res = await fetch(`/api/expenses/${id}`, {
                 method: "DELETE",
+                headers: getHeaders(),
             });
             if (res.ok) {
                 setExpenses(expenses.filter(e => e._id !== id));
-                const statsRes = await fetch("/api/expenses/stats");
+                const statsRes = await fetch("/api/expenses/stats", { headers: getHeaders() });
                 if (statsRes.ok) setStats(await statsRes.json());
 
                 // If editing deleted item, reset

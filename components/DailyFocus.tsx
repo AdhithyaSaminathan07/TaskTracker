@@ -54,12 +54,19 @@ export function DailyFocus() {
         await updateTaskState({ customTasks: updatedTasks });
     }
 
-    const userEmail = "adhisami2003@gmail.com";
+    const getHeaders = () => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        return {
+            "Content-Type": "application/json",
+            "x-user-email": userData.email || "",
+            "x-user-id": userData.id || userData._id || ""
+        };
+    };
 
     useEffect(() => {
         async function fetchTodayFocus() {
             try {
-                const res = await fetch(`/api/focus/today?email=${userEmail}`);
+                const res = await fetch("/api/focus/today", { headers: getHeaders() });
                 const data = await res.json();
                 if (data.success && data.data) {
                     setTask(data.data);
@@ -71,7 +78,7 @@ export function DailyFocus() {
             }
         }
         fetchTodayFocus();
-    }, [refreshKey, userEmail]);
+    }, [refreshKey]);
 
     async function toggleCustomTask(id: string) {
         if (!task || !task.customTasks) return;
@@ -87,8 +94,8 @@ export function DailyFocus() {
         try {
             await fetch("/api/focus/today", {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: userEmail, ...updates }),
+                headers: getHeaders(),
+                body: JSON.stringify(updates),
             });
             setRefreshKey(prev => prev + 1);
         } catch (err) { console.error(err); }

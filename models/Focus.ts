@@ -2,6 +2,7 @@ import mongoose, { Document } from "mongoose";
 
 export interface IFocus extends Document {
     userEmail: string;
+    organizationId: string;
     date: string; // YYYY-MM-DD
     mainFocus: string;
     isCompleted: boolean;
@@ -28,6 +29,7 @@ export interface IFocus extends Document {
 const FocusSchema = new mongoose.Schema(
     {
         userEmail: { type: String, required: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         date: { type: String, required: true },
         mainFocus: { type: String, default: "" },
         isCompleted: { type: Boolean, default: false },

@@ -7,12 +7,24 @@ import { WeeklyTracker } from "@/components/WeeklyTracker";
 export function DashboardStats() {
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({ streak: 0, consistency: 0, completedCount: 0 });
-    const userEmail = "adhisami2003@gmail.com";
+    const [userName, setUserName] = useState("User");
+
+    const getHeaders = () => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        return {
+            "Content-Type": "application/json",
+            "x-user-email": userData.email || "",
+            "x-user-id": userData.id || userData._id || ""
+        };
+    };
 
     useEffect(() => {
+        const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        if (userData.name) setUserName(userData.name);
+
         async function fetchStats() {
             try {
-                const res = await fetch(`/api/focus/week?email=${userEmail}`);
+                const res = await fetch("/api/focus/week", { headers: getHeaders() });
                 const data = await res.json();
                 if (data.success) {
                     calculateStats(data.data);
@@ -24,7 +36,7 @@ export function DashboardStats() {
             }
         }
         fetchStats();
-    }, [userEmail]);
+    }, []);
 
     function calculateStats(last7Days: { date: string; isCompleted: boolean }[]) {
         // 1. Consistency: % of days with isCompleted
@@ -65,7 +77,7 @@ export function DashboardStats() {
             {/* Header Greeting */}
             <div>
                 <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-                    Hello, Adhithya 👋
+                    Hello, {userName} 👋
                 </h1>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
                     Here&apos;s your progress overview.

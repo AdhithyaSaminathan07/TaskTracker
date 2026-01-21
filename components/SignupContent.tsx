@@ -32,8 +32,9 @@ export function SignupContent() {
                 throw new Error(data.error || "Something went wrong");
             }
 
-            // Successful signup, redirect to login (or dashboard)
-            router.push("/");
+            // Successful signup, redirect to dashboard
+            localStorage.setItem("user_data", JSON.stringify(data.data));
+            router.push("/dashboard");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {

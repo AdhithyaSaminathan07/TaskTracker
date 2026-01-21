@@ -28,8 +28,16 @@ export async function POST(request: Request) {
 
         // In a real app, you would set a session cookie or return a JWT here.
         // For this simple example, we just return success.
-        return NextResponse.json({ success: true, data: { name: user.name, email: user.email } }, { status: 200 });
+        return NextResponse.json({
+            success: true,
+            data: {
+                id: user._id,
+                name: user.name,
+                email: user.email
+            }
+        }, { status: 200 });
     } catch (error) {
+        console.error("Login Check Error:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
 }
