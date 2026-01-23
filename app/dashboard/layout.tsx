@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/Header";
 import { BottomNav } from "@/components/BottomNav";
+import { useRouter } from "next/navigation";
 
 export default function DashboardLayout({
     children,
@@ -11,6 +12,28 @@ export default function DashboardLayout({
     children: React.ReactNode;
 }) {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const router = useRouter();
+    const [isAuthorized, setIsAuthorized] = useState(false);
+
+    useEffect(() => {
+        const checkAuth = () => {
+            try {
+                const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+                if (!userData.id && !userData._id) {
+                    throw new Error("Missing ID");
+                }
+                setIsAuthorized(true);
+            } catch (e) {
+                // Invalid or missing session
+                router.replace("/"); // Go to login
+            }
+        };
+        checkAuth();
+    }, [router]);
+
+    if (!isAuthorized) {
+        return null; // or a loading spinner
+    }
 
     return (
         <div className="flex h-[100dvh] overflow-hidden bg-zinc-50 dark:bg-black">

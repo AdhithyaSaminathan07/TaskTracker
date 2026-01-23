@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 // import { useRouter } from "next/navigation"; // Unused
-import { Check, Loader2, Sparkles, X, Target, CalendarDays, Sun, Moon, Briefcase } from "lucide-react";
+import { Check, Loader2, Sparkles, X, Target, CalendarDays, Sun, Moon, Briefcase, Trash2 } from "lucide-react";
 import { clsx } from "clsx";
 
 interface CustomTask {
@@ -11,6 +11,17 @@ interface CustomTask {
     isCompleted: boolean;
     category: string;
     time?: string;
+}
+
+// Simple UUID generator fallback
+function generateUUID() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
 }
 
 interface FocusData {
@@ -26,6 +37,8 @@ export function DailyFocus() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [modalCategory, setModalCategory] = useState<string>("All"); // All, Morning, Work, Night
     const [newTaskInput, setNewTaskInput] = useState("");
+    const [isDeleteMode, setIsDeleteMode] = useState(false);
+    const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
 
 
     const handleAddTask = async (e: React.FormEvent) => {
@@ -38,7 +51,7 @@ export function DailyFocus() {
         if (modalCategory === "All") dbCategory = "Morning";
 
         const newTask = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             title: newTaskInput.trim(),
             isCompleted: false,
             category: dbCategory,
@@ -57,10 +70,18 @@ export function DailyFocus() {
 
     const getHeaders = () => {
         const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        // Manual YYYY-MM-DD formatting to ensure consistency
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const clientDate = `${year}-${month}-${day}`;
+
         return {
             "Content-Type": "application/json",
             "x-user-email": userData.email || "",
-            "x-user-id": userData.id || userData._id || ""
+            "x-user-id": userData.id || userData._id || "",
+            "x-client-date": clientDate
         };
     };
 
@@ -78,7 +99,7 @@ export function DailyFocus() {
                     setTask(data.data);
                 }
             } catch (err) {
-                console.error(err);
+                console.error("Failed to fetch focus data:", err);
             } finally {
                 setLoading(false);
             }
@@ -96,6 +117,42 @@ export function DailyFocus() {
         await updateTaskState({ customTasks: updatedCustomTasks });
     }
 
+    async function deleteCustomTask(id: string) {
+        if (!task || !task.customTasks) return;
+        const updatedCustomTasks = task.customTasks.filter((t: CustomTask) => t.id !== id);
+        const newTaskState = { ...task, customTasks: updatedCustomTasks };
+        setTask(newTaskState);
+        await updateTaskState({ customTasks: updatedCustomTasks });
+    }
+
+    async function deleteSelectedTasks() {
+        if (!task || !task.customTasks || selectedTaskIds.size === 0) return;
+        const updatedCustomTasks = task.customTasks.filter((t: CustomTask) => !selectedTaskIds.has(t.id));
+        const newTaskState = { ...task, customTasks: updatedCustomTasks };
+        setTask(newTaskState);
+        await updateTaskState({ customTasks: updatedCustomTasks });
+        setSelectedTaskIds(new Set());
+        setIsDeleteMode(false);
+    }
+
+    function toggleTaskSelection(id: string) {
+        const newSelected = new Set(selectedTaskIds);
+        if (newSelected.has(id)) {
+            newSelected.delete(id);
+        } else {
+            newSelected.add(id);
+        }
+        setSelectedTaskIds(newSelected);
+    }
+
+    function handleTaskClick(id: string) {
+        if (isDeleteMode) {
+            toggleTaskSelection(id);
+        } else {
+            toggleCustomTask(id);
+        }
+    }
+
     async function updateTaskState(updates: Partial<FocusData>) {
         const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
         if (!userData.id && !userData._id) return; // Silent abort
@@ -106,7 +163,10 @@ export function DailyFocus() {
                 body: JSON.stringify(updates),
             });
             setRefreshKey(prev => prev + 1);
-        } catch (err) { console.error(err); }
+        } catch (err) {
+            console.error("Failed to update task state:", err);
+            // Optionally revert optimistic update here if needed, but for now just log
+        }
     }
 
     // Filter Tasks
@@ -268,57 +328,104 @@ export function DailyFocus() {
                         <div className="relative flex items-center justify-between border-b border-zinc-100 p-6 sm:p-8 dark:border-zinc-800">
                             <div>
                                 <h3 className="text-xl sm:text-2xl font-black text-zinc-900 dark:text-white">{modalCategory} Routine</h3>
-                                <p className="text-xs sm:text-sm font-medium text-zinc-400">{modalStats.completed} of {modalStats.total} tasks completed</p>
+                                <p className="text-xs sm:text-sm font-medium text-zinc-400">
+                                    {isDeleteMode 
+                                        ? `${selectedTaskIds.size} selected` 
+                                        : `${modalStats.completed} of ${modalStats.total} tasks completed`}
+                                </p>
                             </div>
-                            <button
-                                onClick={() => setIsModalOpen(false)}
-                                className="rounded-full bg-zinc-100 p-2 sm:p-3 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                            >
-                                <X className="h-5 w-5 sm:h-6 sm:w-6" />
-                            </button>
+                            <div className="flex items-center gap-2">
+                                {modalTasks.length > 0 && (
+                                    <button
+                                        onClick={() => {
+                                            setIsDeleteMode(!isDeleteMode);
+                                            setSelectedTaskIds(new Set());
+                                        }}
+                                        className={clsx(
+                                            "rounded-full p-2 sm:p-3 transition-colors",
+                                            isDeleteMode
+                                                ? "bg-red-100 text-red-600 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50"
+                                                : "bg-zinc-100 text-zinc-500 hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                                        )}
+                                        title={isDeleteMode ? "Cancel delete mode" : "Delete tasks"}
+                                    >
+                                        <Trash2 className="h-5 w-5 sm:h-6 sm:w-6" />
+                                    </button>
+                                )}
+                                <button
+                                    onClick={() => {
+                                        setIsModalOpen(false);
+                                        setIsDeleteMode(false);
+                                        setSelectedTaskIds(new Set());
+                                    }}
+                                    className="rounded-full bg-zinc-100 p-2 sm:p-3 text-zinc-500 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                                >
+                                    <X className="h-5 w-5 sm:h-6 sm:w-6" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* List */}
                         <div className="max-h-[60vh] overflow-y-auto p-4 sm:p-6 scrollbar-hide">
                             <div className="space-y-3">
                                 {modalTasks.length > 0 ? (
-                                    modalTasks.map((t: CustomTask) => (
-                                        <button
-                                            key={t.id}
-                                            onClick={() => toggleCustomTask(t.id)}
-                                            className={clsx(
-                                                "group flex w-full items-center gap-3 sm:gap-4 rounded-3xl border p-3 sm:p-4 text-left transition-all active:scale-[0.98]",
-                                                t.isCompleted
-                                                    ? "border-green-200 bg-green-50/50 dark:border-green-900/20 dark:bg-green-900/10"
-                                                    : "border-zinc-100 bg-white hover:border-purple-200 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-purple-900/50"
-                                            )}
-                                        >
-                                            <div className={clsx(
-                                                "flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl transition-colors",
-                                                t.isCompleted
-                                                    ? "bg-green-500 text-white"
-                                                    : "bg-zinc-100 text-zinc-400 group-hover:bg-purple-100 group-hover:text-purple-600 dark:bg-zinc-800 dark:group-hover:bg-purple-900/30 dark:group-hover:text-purple-400"
-                                            )}>
-                                                {t.isCompleted ? <Check className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={3} /> : <Target className="h-5 w-5 sm:h-6 sm:w-6" />}
-                                            </div>
+                                    modalTasks.map((t: CustomTask) => {
+                                        const isSelected = selectedTaskIds.has(t.id);
+                                        return (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => handleTaskClick(t.id)}
+                                                className={clsx(
+                                                    "group flex w-full items-center gap-3 sm:gap-4 rounded-3xl border p-3 sm:p-4 text-left transition-all active:scale-[0.98]",
+                                                    isDeleteMode && isSelected
+                                                        ? "border-red-300 bg-red-50/50 ring-2 ring-red-400 dark:border-red-800 dark:bg-red-900/20 dark:ring-red-600"
+                                                        : t.isCompleted
+                                                            ? "border-green-200 bg-green-50/50 dark:border-green-900/20 dark:bg-green-900/10"
+                                                            : "border-zinc-100 bg-white hover:border-purple-200 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-purple-900/50"
+                                                )}
+                                            >
+                                                {isDeleteMode ? (
+                                                    <div className={clsx(
+                                                        "flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl border-2 transition-colors",
+                                                        isSelected
+                                                            ? "bg-red-500 border-red-600 text-white dark:bg-red-600 dark:border-red-500"
+                                                            : "bg-white border-zinc-300 text-zinc-400 dark:bg-zinc-800 dark:border-zinc-600"
+                                                    )}>
+                                                        {isSelected ? <Check className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={3} /> : null}
+                                                    </div>
+                                                ) : (
+                                                    <div className={clsx(
+                                                        "flex h-10 w-10 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl transition-colors",
+                                                        t.isCompleted
+                                                            ? "bg-green-500 text-white"
+                                                            : "bg-zinc-100 text-zinc-400 group-hover:bg-purple-100 group-hover:text-purple-600 dark:bg-zinc-800 dark:group-hover:bg-purple-900/30 dark:group-hover:text-purple-400"
+                                                    )}>
+                                                        {t.isCompleted ? <Check className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={3} /> : <Target className="h-5 w-5 sm:h-6 sm:w-6" />}
+                                                    </div>
+                                                )}
 
-                                            <div className="flex-1 min-w-0">
-                                                <div className={clsx(
-                                                    "text-base sm:text-lg font-bold truncate transition-all",
-                                                    t.isCompleted ? "text-green-800 line-through opacity-50 dark:text-green-200" : "text-zinc-900 dark:text-white"
-                                                )}>
-                                                    {t.title}
+                                                <div className="flex-1 min-w-0">
+                                                    <div className={clsx(
+                                                        "text-base sm:text-lg font-bold truncate transition-all",
+                                                        isDeleteMode && isSelected
+                                                            ? "text-red-900 dark:text-red-100"
+                                                            : t.isCompleted 
+                                                                ? "text-green-800 line-through opacity-50 dark:text-green-200" 
+                                                                : "text-zinc-900 dark:text-white"
+                                                    )}>
+                                                        {t.title}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        {t.category && (
+                                                            <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-zinc-500 dark:bg-zinc-800">
+                                                                {t.category}
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    {t.category && (
-                                                        <span className="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] sm:text-xs font-semibold text-zinc-500 dark:bg-zinc-800">
-                                                            {t.category}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))
+                                            </button>
+                                        );
+                                    })
                                 ) : (
                                     <div className="flex min-h-[200px] flex-col items-center justify-center gap-4 rounded-3xl border border-dashed border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900/50">
                                         <div className="rounded-full bg-zinc-100 p-4 dark:bg-zinc-900">
@@ -330,24 +437,45 @@ export function DailyFocus() {
                             </div>
                         </div>
 
-                        {/* Footer - Inline Add */}
+                        {/* Footer - Inline Add or Delete Selected */}
                         <div className="p-4 sm:p-5 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 padding-bottom-safe">
-                            <form onSubmit={handleAddTask} className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newTaskInput}
-                                    onChange={(e) => setNewTaskInput(e.target.value)}
-                                    placeholder={`Add a ${modalCategory} task...`}
-                                    className="flex-1 rounded-xl bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 shadow-sm dark:bg-zinc-800 dark:text-white dark:focus:ring-purple-500/40"
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!newTaskInput.trim()}
-                                    className="rounded-xl bg-zinc-900 px-4 py-2 font-bold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
-                                >
-                                    Add
-                                </button>
-                            </form>
+                            {isDeleteMode ? (
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => {
+                                            setIsDeleteMode(false);
+                                            setSelectedTaskIds(new Set());
+                                        }}
+                                        className="flex-1 rounded-xl bg-zinc-200 px-4 py-3 text-sm font-bold text-zinc-700 transition-all hover:bg-zinc-300 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={deleteSelectedTasks}
+                                        disabled={selectedTaskIds.size === 0}
+                                        className="flex-1 rounded-xl bg-red-600 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        Delete ({selectedTaskIds.size})
+                                    </button>
+                                </div>
+                            ) : (
+                                <form onSubmit={handleAddTask} className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={newTaskInput}
+                                        onChange={(e) => setNewTaskInput(e.target.value)}
+                                        placeholder={`Add a ${modalCategory} task...`}
+                                        className="flex-1 rounded-xl bg-white px-4 py-3 text-sm font-medium text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-500/20 shadow-sm dark:bg-zinc-800 dark:text-white dark:focus:ring-purple-500/40"
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={!newTaskInput.trim()}
+                                        className="rounded-xl bg-zinc-900 px-4 py-2 font-bold text-white transition-all hover:bg-zinc-800 disabled:opacity-50 dark:bg-white dark:text-black dark:hover:bg-zinc-200"
+                                    >
+                                        Add
+                                    </button>
+                                </form>
+                            )}
                         </div>
                     </div>
                 </div>

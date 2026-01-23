@@ -20,6 +20,9 @@ export function LoginContent() {
         const password = formData.get("password");
 
         try {
+            // Clear any stale data
+            localStorage.removeItem("user_data");
+
             const res = await fetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -27,6 +30,7 @@ export function LoginContent() {
             });
 
             const data = await res.json();
+            console.log("Login Response:", data);
 
             if (!res.ok) {
                 throw new Error(data.error || "Login failed");
@@ -34,7 +38,8 @@ export function LoginContent() {
 
             // Successful login
             localStorage.setItem("user_data", JSON.stringify(data.data));
-            router.push("/dashboard");
+            // Force a hard reload to ensure storage is ready before layout check
+            window.location.href = "/dashboard";
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {

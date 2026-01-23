@@ -60,6 +60,7 @@ const FocusSchema = new mongoose.Schema(
 );
 
 // Composite index to ensure one focus task per user per day
-FocusSchema.index({ userEmail: 1, date: 1 }, { unique: true });
+// Use userId + date to match all API queries/upserts.
+FocusSchema.index({ userId: 1, date: 1 }, { unique: true });
 
 export default mongoose.models.Focus || mongoose.model<IFocus>("Focus", FocusSchema);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import WeeklyPlan from "@/models/WeeklyPlan";
+import mongoose from "mongoose";
 
 function getWeekStartDate(date: Date) {
     const d = new Date(date);
@@ -20,10 +21,17 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+        }
+
         const today = new Date();
         const weekStart = getWeekStartDate(today);
 
-        const plan = await WeeklyPlan.findOne({ userId, weekStartDate: weekStart });
+        const plan = await WeeklyPlan.findOne({ 
+            userId: new mongoose.Types.ObjectId(userId), 
+            weekStartDate: weekStart 
+        });
 
         if (!plan) {
             // Return empty structure if not found (or create? let's just return empty for frontend to handle)
@@ -47,18 +55,24 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
+        }
+
         const { goals } = await request.json();
 
         const today = new Date();
         const weekStart = getWeekStartDate(today);
 
+        const userIdObjectId = new mongoose.Types.ObjectId(userId);
+
         const plan = await WeeklyPlan.findOneAndUpdate(
-            { userId, weekStartDate: weekStart },
+            { userId: userIdObjectId, weekStartDate: weekStart },
             {
                 userEmail,
-                userId,
+                userId: userIdObjectId,
                 weekStartDate: weekStart,
-                goals: goals
+                goals: goals || []
             },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );

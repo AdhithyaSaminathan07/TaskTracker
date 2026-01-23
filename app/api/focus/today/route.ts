@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
+import fs from 'fs';
+import path from 'path';
+
+function logToFile(message: string) {
+    try {
+        const logPath = path.resolve(process.cwd(), 'debug_focus.log');
+        const timestamp = new Date().toISOString();
+        fs.appendFileSync(logPath, `[${timestamp}] ${message}\n`);
+    } catch (e) {
+        // ignore
+    }
+}
 import Focus from "@/models/Focus";
 import mongoose from "mongoose";
 
@@ -17,15 +29,20 @@ export async function GET(request: Request) {
         const userId = request.headers.get("x-user-id");
 
         if (!userEmail || !userId) {
+            logToFile(`[GET] Warn: Unauthorized - Email: ${userEmail}, ID: ${userId}`);
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const clientDate = request.headers.get("x-client-date");
+        const today = clientDate || new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD
+        logToFile(`[GET] Request - User: ${userEmail}, ID: ${userId}, Date: ${today}`);
 
         const focus = await Focus.findOne({ userId: new mongoose.Types.ObjectId(userId), date: today });
+        console.log(`[GET Focus] Found:`, focus ? "Yes" : "No");
 
         return NextResponse.json({ success: true, data: focus });
     } catch (error) {
+        logToFile(`[GET] Error: ${error}`);
         console.error("Error in GET /api/focus/today:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }
@@ -38,11 +55,14 @@ export async function POST(request: Request) {
         const userId = request.headers.get("x-user-id");
 
         if (!userEmail || !userId) {
+            logToFile(`[POST] Warn: Unauthorized - Email: ${userEmail}, ID: ${userId}`);
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
         const { title } = await request.json();
-        const today = new Date().toLocaleDateString('en-CA');
+        const clientDate = request.headers.get("x-client-date");
+        const today = clientDate || new Date().toLocaleDateString('en-CA');
+        console.log(`[POST Focus] User: ${userEmail}, Title: ${title}, today: ${today}`);
 
         // Upsert: Create if not exists, otherwise update
         const focus = await Focus.findOneAndUpdate(
@@ -71,6 +91,7 @@ export async function PUT(request: Request) {
         const userId = request.headers.get("x-user-id");
 
         if (!userEmail || !userId) {
+            logToFile(`[PUT] Warn: Unauthorized - Email: ${userEmail}, ID: ${userId}`);
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
@@ -80,7 +101,10 @@ export async function PUT(request: Request) {
             modLearning, modHygiene, modAdmin, modShutdown,
             customTasks
         } = await request.json();
-        const today = new Date().toLocaleDateString('en-CA');
+        const clientDate = request.headers.get("x-client-date");
+        const today = clientDate || new Date().toLocaleDateString('en-CA');
+
+        logToFile(`[PUT] Request - User: ${userEmail}, Date: ${today}, Tasks: ${customTasks?.length}`);
 
         const updateData: Record<string, unknown> = {};
 
@@ -110,8 +134,10 @@ export async function PUT(request: Request) {
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
 
+        logToFile(`[PUT] Success - ID: ${focus._id}`);
         return NextResponse.json({ success: true, data: focus });
     } catch (error) {
+        logToFile(`[PUT] Error: ${error}`);
         console.error("Error in PUT /api/focus/today:", error);
         return NextResponse.json({ error: "Server error" }, { status: 500 });
     }

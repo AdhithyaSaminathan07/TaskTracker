@@ -78,16 +78,25 @@ export function PlansContent() {
     async function handleSave() {
         setSaving(true);
         try {
-            await fetch("/api/plans", {
+            const res = await fetch("/api/plans", {
                 method: "PUT",
                 headers: getHeaders(),
                 body: JSON.stringify({
                     goals: goals
                 }),
             });
+            
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+                throw new Error(data.error || "Failed to save plans");
+            }
+            
             router.push("/dashboard/focus");
             router.refresh();
-        } catch (err) { console.error(err); } finally {
+        } catch (err) { 
+            console.error("Error saving plans:", err);
+            alert("Failed to save plans. Please try again.");
+        } finally {
             setSaving(false);
         }
     }

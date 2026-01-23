@@ -52,6 +52,10 @@ export function ExpensesContent() {
 
     const getHeaders = () => {
         const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+        // DEBUG: Check what is actually in userData
+        if (!userData.email || (!userData.id && !userData._id)) {
+            console.warn("getHeaders: Missing user data", userData);
+        }
         return {
             "Content-Type": "application/json",
             "x-user-email": userData.email || "",
@@ -61,6 +65,7 @@ export function ExpensesContent() {
 
     const fetchData = useCallback(async () => {
         try {
+            console.log("Fetching expenses data...");
             const [expRes, statsRes] = await Promise.all([
                 fetch("/api/expenses", { headers: getHeaders() }),
                 fetch("/api/expenses/stats", { headers: getHeaders() })
@@ -68,11 +73,18 @@ export function ExpensesContent() {
 
             if (expRes.ok) {
                 const data = await expRes.json();
+                console.log("Expenses fetched:", data);
                 setExpenses(data);
+            } else {
+                console.error("Failed to fetch expenses:", expRes.status, await expRes.text());
             }
+
             if (statsRes.ok) {
                 const data = await statsRes.json();
+                console.log("Stats fetched:", data);
                 setStats(data);
+            } else {
+                console.error("Failed to fetch stats:", statsRes.status);
             }
         } catch (error) {
             console.error("Failed to fetch data", error);
@@ -83,10 +95,12 @@ export function ExpensesContent() {
 
     useEffect(() => {
         const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
-        if (userData.id || userData._id) {
+        if ((userData.id || userData._id) && userData.email) {
             fetchData();
         } else {
+            // No valid session, redirect immediately
             setIsLoading(false);
+            window.location.href = "/";
         }
     }, [fetchData]);
 
@@ -123,10 +137,14 @@ export function ExpensesContent() {
                 resetForm();
                 fetchData(); // Refresh list and stats
             } else {
+                const errData = await res.json();
+                console.error("Save failed", errData);
                 if (res.status === 401) {
-                    alert("Your session has expired. Please Log Out and Log In again.");
+                    const headers = getHeaders();
+                    console.error("Unauthorized: Session headers missing or invalid.", headers);
+                    alert(`Session expired or invalid: ${errData.error}`);
                 } else {
-                    alert("Failed to save expense. Please try again.");
+                    alert(`Failed to save expense: ${errData.error || "Unknown error"}`);
                 }
             }
         } catch (error) {
@@ -256,7 +274,7 @@ export function ExpensesContent() {
                                 )}
                                 <div className="relative w-full">
                                     <div className="absolute top-1/2 left-1/2 -translate-x-[40px] lg:-translate-x-[50px] -translate-y-1/2 pointer-events-none">
-                                        <span className="text-xl lg:text-2xl font-medium text-zinc-200 dark:text-zinc-700">₹</span>
+                                        <span className="text-xl lg:text-2xl font-bold text-zinc-200 dark:text-zinc-700">₹</span>
                                     </div>
                                     <input
                                         type="number"
