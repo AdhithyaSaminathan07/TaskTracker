@@ -37,9 +37,14 @@ export function LoginContent() {
             }
 
             // Successful login
+            console.log("Saving user data to localStorage:", data.data);
             localStorage.setItem("user_data", JSON.stringify(data.data));
-            // Force a hard reload to ensure storage is ready before layout check
-            window.location.href = "/dashboard";
+
+            // Use router.push for smoother client-side transition
+            // Small delay to ensure localStorage is written (though usually synchronous)
+            setTimeout(() => {
+                router.push("/dashboard");
+            }, 100);
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");
         } finally {

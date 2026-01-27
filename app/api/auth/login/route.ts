@@ -41,7 +41,7 @@ export async function POST(request: Request) {
             );
         }
 
-        logToFile(`Login successful for: ${email}`);
+        logToFile(`Login successful for: ${email}. Payload: ${JSON.stringify({ id: user._id.toString(), name: user.name, email: user.email })}`);
 
         // In a real app, you would set a session cookie or return a JWT here.
         // For this simple example, we just return success.

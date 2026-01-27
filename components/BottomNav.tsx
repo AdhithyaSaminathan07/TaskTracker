@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Calendar, User, Zap, Settings, CheckCircle2, PlusCircle, Wallet, Target } from "lucide-react";
+import { Calendar, User, Zap, Settings, CheckCircle2, PlusCircle, Wallet, Target, Utensils } from "lucide-react";
 import { clsx } from "clsx";
 
 export function BottomNav() {
@@ -72,20 +72,20 @@ export function BottomNav() {
                     <span className="text-[10px] font-medium">Plans</span>
                 </Link>
 
-                {/* Settings Button */}
+                {/* Meals Button (Replaces Settings) */}
                 <Link
-                    href="/dashboard/profile"
+                    href="/dashboard/meals"
                     className={clsx(
                         "flex flex-col items-center gap-1 transition-all active:scale-95",
-                        pathname === "/dashboard/profile"
+                        pathname === "/dashboard/meals"
                             ? "text-purple-600 dark:text-purple-400"
                             : "text-zinc-400 hover:text-zinc-600 dark:text-zinc-500 dark:hover:text-zinc-300"
                     )}
                 >
-                    <div className={clsx("rounded-xl p-1", pathname === "/dashboard/profile" && "bg-purple-50 dark:bg-purple-900/20")}>
-                        <Settings className="h-6 w-6" strokeWidth={2.5} />
+                    <div className={clsx("rounded-xl p-1", pathname === "/dashboard/meals" && "bg-purple-50 dark:bg-purple-900/20")}>
+                        <Utensils className="h-6 w-6" strokeWidth={2.5} />
                     </div>
-                    <span className="text-[10px] font-medium">Settings</span>
+                    <span className="text-[10px] font-medium">Meals</span>
                 </Link>
             </nav>
         </div>

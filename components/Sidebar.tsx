@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, CheckSquare, Calendar, Settings, LogOut, X, CheckCircle2, User, Plus, Wallet, Target } from "lucide-react";
+import { LayoutDashboard, CheckSquare, Calendar, Settings, LogOut, X, CheckCircle2, User, Plus, Wallet, Target, Utensils } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -11,6 +11,7 @@ const navItems = [
     { name: "Weekly Plans", href: "/dashboard/plans", icon: Target },
     { name: "Task", href: "/dashboard/focus", icon: CheckCircle2 },
     { name: "Daily Expenses", href: "/dashboard/expenses", icon: Wallet },
+    { name: "Meals", href: "/dashboard/meals", icon: Utensils },
     { name: "Profile", href: "/dashboard/profile", icon: User },
 ];
 

@@ -33,6 +33,9 @@ export function LandingContent() {
             }
 
             // Successful login
+            console.log("Saving user data to localStorage:", data.data);
+            localStorage.setItem("user_data", JSON.stringify(data.data));
+
             router.push("/dashboard");
         } catch (err) {
             setError(err instanceof Error ? err.message : "An error occurred");

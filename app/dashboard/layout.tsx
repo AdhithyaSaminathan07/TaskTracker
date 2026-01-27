@@ -18,17 +18,29 @@ export default function DashboardLayout({
     useEffect(() => {
         const checkAuth = () => {
             try {
-                const userData = JSON.parse(localStorage.getItem("user_data") || "{}");
+                const rawData = localStorage.getItem("user_data");
+                console.log("[DashboardLayout] Checking auth. Raw data:", rawData);
+
+                const userData = JSON.parse(rawData || "{}");
+                console.log("[DashboardLayout] Parsed user data:", userData);
+
                 if (!userData.id && !userData._id) {
+                    console.error("[DashboardLayout] Missing ID in user data");
                     throw new Error("Missing ID");
                 }
+
+                console.log("[DashboardLayout] Auth successful");
                 setIsAuthorized(true);
             } catch (e) {
+                console.error("[DashboardLayout] Auth failed:", e);
                 // Invalid or missing session
                 router.replace("/"); // Go to login
             }
         };
-        checkAuth();
+        // Verify we are in the browser
+        if (typeof window !== "undefined") {
+            checkAuth();
+        }
     }, [router]);
 
     if (!isAuthorized) {

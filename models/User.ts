@@ -14,6 +14,10 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: [true, "Please provide a name for this user."],
     },
+    calorieTarget: {
+        type: Number,
+        default: 2000,
+    },
 });
 
 export default mongoose.models.User || mongoose.model("User", UserSchema);
