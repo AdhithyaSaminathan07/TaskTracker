@@ -2,6 +2,7 @@
 
 import { LogOut, User, Settings, Bell, Shield, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 
@@ -17,9 +18,9 @@ export function ProfileContent() {
         }
     }, []);
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         localStorage.removeItem("user_data");
-        router.push("/");
+        await signOut({ callbackUrl: "/" });
     };
 
     return (

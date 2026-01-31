@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { LayoutDashboard, CheckSquare, Calendar, Settings, LogOut, X, CheckCircle2, User, Plus, Wallet, Target, Utensils } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -87,9 +88,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     {/* User Profile / Logout */}
                     <div className="border-t border-zinc-200 p-4 dark:border-zinc-800">
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 localStorage.removeItem("user_data");
-                                window.location.href = "/";
+                                await signOut({ callbackUrl: "/" });
                             }}
                             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-all hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/10"
                         >

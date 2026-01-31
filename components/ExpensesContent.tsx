@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Coffee, Bus, ShoppingBag, Receipt, Film, MoreHorizontal, Plus, Wallet, Trash2, CalendarRange, TrendingUp, IndianRupee, ChevronDown, Tag, Pencil, Save, X } from "lucide-react";
+import { Coffee, Bus, ShoppingBag, Receipt, Film, MoreHorizontal, Plus, Wallet, Trash2, CalendarRange, TrendingUp, IndianRupee, ChevronDown, Tag, Pencil, Save, X, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 
 interface Expense {
@@ -205,7 +205,34 @@ export function ExpensesContent() {
         setIsDropdownOpen(false);
     };
 
+    // Helper to group expenses
+    const groupedExpenses = (() => {
+        const groups: { [key: string]: { expenses: Expense[], total: number } } = {};
 
+        expenses.forEach(expense => {
+            const date = new Date(expense.timestamp);
+            const today = new Date();
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+
+            let dateKey = date.toLocaleDateString("en-GB", { day: 'numeric', month: 'short', year: 'numeric' });
+
+            if (date.toDateString() === today.toDateString()) {
+                dateKey = "Today";
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                dateKey = "Yesterday";
+            }
+
+            if (!groups[dateKey]) {
+                groups[dateKey] = { expenses: [], total: 0 };
+            }
+
+            groups[dateKey].expenses.push(expense);
+            groups[dateKey].total += expense.amount;
+        });
+
+        return Object.entries(groups).map(([date, data]) => ({ date, ...data }));
+    })();
 
     return (
         <div className="mx-auto max-w-md lg:max-w-6xl space-y-6 lg:space-y-8 pt-2 lg:pt-4 pb-20 lg:pb-0">
@@ -274,7 +301,7 @@ export function ExpensesContent() {
                                 )}
                                 <div className="relative w-full">
                                     <div className="absolute top-1/2 left-1/2 -translate-x-[40px] lg:-translate-x-[50px] -translate-y-1/2 pointer-events-none">
-                                        <span className="text-xl lg:text-2xl font-bold text-zinc-200 dark:text-zinc-700">₹</span>
+                                        <span className="text-xl lg:text-2xl font-bold text-zinc-800 dark:text-zinc-200">₹</span>
                                     </div>
                                     <input
                                         type="number"
@@ -407,74 +434,83 @@ export function ExpensesContent() {
                 </div>
 
                 {/* List - Right/Bottom */}
-                <div className="lg:w-1/2 space-y-3 lg:space-y-4 px-2 lg:px-0">
+                <div className="lg:w-1/2 space-y-6 px-2 lg:px-0">
                     <div className="flex items-center justify-between px-2">
                         <h3 className="text-sm font-semibold text-zinc-900 dark:text-white">Recent Transactions</h3>
-                        <span className="text-xs text-zinc-500 cursor-pointer hover:text-violet-600">View All</span>
                     </div>
 
                     {isLoading && expenses.length === 0 ? (
                         <div className="flex justify-center py-8">
-                            <div className="animate-pulse h-8 w-8 rounded-full bg-zinc-200 dark:bg-zinc-800"></div>
+                            <Loader2 className="h-6 w-6 animate-spin text-zinc-400" />
                         </div>
                     ) : expenses.length === 0 ? (
-                        <div className="flex flex-col items-center justify-center py-10 lg:py-12 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <div className="flex flex-col items-center justify-center py-12 rounded-3xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
                             <Wallet className="h-10 w-10 text-zinc-300 mb-2" />
-                            <p className="text-sm font-medium text-zinc-400">No activity today</p>
+                            <p className="text-sm font-medium text-zinc-400">No expenses recorded yet</p>
                         </div>
                     ) : (
-                        expenses.map((expense) => {
-                            const cat = categories.find(c => c.name === expense.category);
-                            const Icon = cat ? cat.icon : Wallet;
-                            const isEditing = editingId === expense._id;
-
-                            return (
-                                <div
-                                    key={expense._id}
-                                    className={clsx(
-                                        "group flex items-center justify-between rounded-2xl bg-white p-4 lg:p-5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all border dark:bg-zinc-900 dark:shadow-black/20",
-                                        isEditing
-                                            ? "border-violet-500 ring-1 ring-violet-500"
-                                            : "border-zinc-100/50 dark:border-zinc-800 hover:shadow-md"
-                                    )}
-                                >
-                                    <div className="flex items-center gap-3 lg:gap-4">
-                                        <div className="flex h-10 w-10 lg:h-12 lg:w-12 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 group-hover:bg-violet-50 group-hover:text-violet-600 transition-colors">
-                                            <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
-                                        </div>
-                                        <div className="flex flex-col">
-                                            <span className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-violet-700 transition-colors">
-                                                {expense.description}
-                                            </span>
-                                            <span className="text-[10px] font-medium text-zinc-400">
-                                                {new Date(expense.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2 lg:gap-3">
-                                        <span className="font-bold text-base lg:text-lg text-zinc-900 dark:text-white mr-1">
-                                            -₹{expense.amount.toFixed(2)}
-                                        </span>
-
-                                        <button
-                                            onClick={() => handleEditClick(expense)}
-                                            className="p-2 rounded-lg text-zinc-300 transition-all hover:bg-zinc-100 hover:text-violet-600 dark:hover:bg-zinc-800 opacity-0 group-hover:opacity-100"
-                                            title="Edit"
-                                        >
-                                            <Pencil className="h-4 w-4" />
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleDelete(expense._id)}
-                                            className="p-2 rounded-lg text-zinc-300 transition-all hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100"
-                                            title="Delete"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
+                        groupedExpenses.map((group) => (
+                            <div key={group.date} className="space-y-3">
+                                <div className="flex items-center justify-between px-4 py-2 rounded-xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800/50">
+                                    <h4 className="text-xs font-bold uppercase tracking-wider text-zinc-500">{group.date}</h4>
+                                    <span className="text-xs font-bold text-zinc-900 dark:text-zinc-300">Total: ₹{group.total.toFixed(0)}</span>
                                 </div>
-                            );
-                        })
+                                <div className="space-y-2">
+                                    {group.expenses.map((expense) => {
+                                        const cat = categories.find(c => c.name === expense.category);
+                                        const Icon = cat ? cat.icon : Wallet;
+                                        const isEditing = editingId === expense._id;
+
+                                        return (
+                                            <div
+                                                key={expense._id}
+                                                className={clsx(
+                                                    "group flex items-center justify-between rounded-2xl bg-white p-4 shadow-[0_2px_8px_-4px_rgba(0,0,0,0.05)] transition-all border dark:bg-zinc-900 dark:shadow-black/20",
+                                                    isEditing
+                                                        ? "border-violet-500 ring-1 ring-violet-500"
+                                                        : "border-zinc-100/50 dark:border-zinc-800 hover:shadow-md hover:border-zinc-200 dark:hover:border-zinc-700"
+                                                )}
+                                            >
+                                                <div className="flex items-center gap-3 lg:gap-4">
+                                                    <div className="flex h-10 w-10 lg:h-12 lg:w-12 items-center justify-center rounded-2xl bg-zinc-50 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400 group-hover:bg-violet-50 group-hover:text-violet-600 transition-colors">
+                                                        <Icon className="h-4 w-4 lg:h-5 lg:w-5" />
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-bold text-zinc-900 dark:text-white group-hover:text-violet-700 transition-colors">
+                                                            {expense.description}
+                                                        </span>
+                                                        <span className="text-[10px] font-medium text-zinc-400">
+                                                            {new Date(expense.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 lg:gap-3">
+                                                    <span className="font-bold text-base lg:text-lg text-zinc-900 dark:text-white flex items-center">
+                                                        <span className="text-zinc-400 mr-0.5 font-sans">₹</span>
+                                                        {expense.amount.toFixed(2)}
+                                                    </span>
+
+                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        <button
+                                                            onClick={() => handleEditClick(expense)}
+                                                            className="p-1.5 rounded-lg text-zinc-400 hover:bg-zinc-100 hover:text-violet-600 dark:hover:bg-zinc-800"
+                                                        >
+                                                            <Pencil className="h-4 w-4" />
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDelete(expense._id)}
+                                                            className="p-1.5 rounded-lg text-zinc-400 hover:bg-red-50 hover:text-red-500 dark:hover:bg-red-900/20"
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        ))
                     )}
                 </div>
             </div>

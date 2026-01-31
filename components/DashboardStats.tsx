@@ -1,13 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, TrendingUp, Flame, Calendar, Target, IndianRupee, CheckCircle2 } from "lucide-react";
+import { Loader2, TrendingUp, Flame, Calendar, Target, IndianRupee, CheckCircle2, Clock } from "lucide-react";
 import { WeeklyTracker } from "@/components/WeeklyTracker";
 import Link from "next/link";
+
+const COLORS = [
+    { name: "Pink", value: "bg-pink-100 text-pink-900 border-pink-200 dark:bg-pink-900/30 dark:text-pink-100 dark:border-pink-800", dot: "bg-pink-500" },
+    { name: "Purple", value: "bg-purple-100 text-purple-900 border-purple-200 dark:bg-purple-900/30 dark:text-purple-100 dark:border-purple-800", dot: "bg-purple-500" },
+    { name: "Yellow", value: "bg-yellow-100 text-yellow-900 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-100 dark:border-yellow-800", dot: "bg-yellow-500" },
+    { name: "Green", value: "bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-100 dark:border-emerald-800", dot: "bg-emerald-500" },
+    { name: "Blue", value: "bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-900/30 dark:text-blue-100 dark:border-blue-800", dot: "bg-blue-500" },
+];
 
 interface PlanGoal {
     id: string;
     title: string;
+    description?: string;
+    startTime?: string;
+    date?: string;
+    color?: string;
     isCompleted: boolean;
 }
 
@@ -79,9 +91,6 @@ export function DashboardStats() {
         const consistency = Math.round((completed / 7) * 100);
 
         // 2. Streak: Count backwards from today
-        // Note: The API returns last 7 days. Ideally streak needs more history, 
-        // but let's approximate with what we have or just count consecutive in the week window for now.
-        // For a real app, we need a dedicated stats endpoint.
         let currentStreak = 0;
         // Sort by date descending (newest first)
         const sorted = [...last7Days].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -106,6 +115,10 @@ export function DashboardStats() {
             </div>
         );
     }
+
+    // Filter for TODAY's plans
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const todaysPlans = weeklyPlans.filter(p => p.date === todayStr).sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
 
     return (
         <div className="space-y-6">
@@ -158,63 +171,68 @@ export function DashboardStats() {
                 </div>
             </div>
 
-            {/* Weekly Plans Summary */}
+            {/* Today's Plans Summary (Grid) */}
             <div className="rounded-2xl border border-purple-200 bg-white p-5 shadow-sm dark:border-purple-800/50 dark:bg-zinc-900">
                 <div className="mb-4 flex items-center justify-between">
                     <h3 className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-white">
                         <Target className="h-4 w-4 text-purple-500" />
-                        Weekly Plans
+                        Today&apos;s Plans
                     </h3>
-                    <Link 
-                        href="/dashboard/plans" 
+                    <Link
+                        href="/dashboard/plans"
                         className="text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
                     >
-                        {weeklyPlans.length > 0 ? 'View All →' : 'Add Plans →'}
+                        {todaysPlans.length > 0 ? 'View All →' : 'Add Plans →'}
                     </Link>
                 </div>
-                {weeklyPlans.length > 0 ? (
-                    <>
-                        <div className="space-y-2">
-                            {weeklyPlans.slice(0, 3).map((plan) => (
-                                <div 
-                                    key={plan.id} 
-                                    className="flex items-center gap-3 rounded-lg bg-purple-50/50 p-3 dark:bg-purple-900/20"
-                                >
-                                    <div className={`shrink-0 ${plan.isCompleted ? 'text-purple-600 dark:text-purple-400' : 'text-zinc-400 dark:text-zinc-600'}`}>
-                                        <CheckCircle2 className={`h-5 w-5 ${plan.isCompleted ? 'fill-current' : ''}`} />
+
+                {todaysPlans.length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto pr-1 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-zinc-200 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:rounded-full dark:[&::-webkit-scrollbar-thumb]:bg-zinc-800">
+                        <div className="grid grid-cols-2 gap-3 pb-2">
+                            {todaysPlans.map((plan) => {
+                                const statusColor = plan.isCompleted
+                                    ? "bg-emerald-100 border-emerald-200 text-emerald-900 dark:bg-emerald-900/20 dark:text-emerald-100 dark:border-emerald-800"
+                                    : "bg-orange-50 border-orange-200 text-orange-900 dark:bg-orange-900/20 dark:text-orange-100 dark:border-orange-800";
+
+                                return (
+                                    <div
+                                        key={plan.id}
+                                        className={`relative rounded-xl p-3 transition-all border ${statusColor} ${plan.isCompleted ? 'opacity-90' : ''}`}
+                                    >
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-start justify-between gap-2">
+                                                <h4 className={`font-bold text-sm leading-tight line-clamp-1 ${plan.isCompleted ? 'line-through decoration-current/40' : ''}`}>
+                                                    {plan.title}
+                                                </h4>
+                                                {plan.isCompleted && <CheckCircle2 className="h-4 w-4 shrink-0" />}
+                                                {!plan.isCompleted && <Clock className="h-4 w-4 shrink-0 opacity-50" />}
+                                            </div>
+
+                                            <div className="flex items-center justify-between text-xs opacity-80 mt-1">
+                                                <span className="font-semibold">{plan.startTime || "Today"}</span>
+                                            </div>
+
+                                            {plan.description && (
+                                                <p className="text-xs opacity-70 line-clamp-1 mt-1">
+                                                    {plan.description}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
-                                    <span className={`flex-1 text-sm font-medium ${plan.isCompleted ? 'line-through text-zinc-500 dark:text-zinc-400' : 'text-zinc-900 dark:text-white'}`}>
-                                        {plan.title}
-                                    </span>
-                                </div>
-                            ))}
-                            {weeklyPlans.length > 3 && (
-                                <div className="text-center text-xs text-zinc-500 dark:text-zinc-400 pt-1">
-                                    +{weeklyPlans.length - 3} more plan{weeklyPlans.length - 3 !== 1 ? 's' : ''}
-                                </div>
-                            )}
+                                );
+                            })}
                         </div>
-                        <div className="mt-4 pt-4 border-t border-purple-100 dark:border-purple-800/50">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-zinc-600 dark:text-zinc-400">
-                                    Progress
-                                </span>
-                                <span className="font-semibold text-purple-600 dark:text-purple-400">
-                                    {weeklyPlans.filter(p => p.isCompleted).length}/{weeklyPlans.length} completed
-                                </span>
-                            </div>
-                        </div>
-                    </>
+                    </div>
                 ) : (
                     <div className="py-4 text-center">
                         <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-2">
-                            No plans set for this week
+                            No plans set for today
                         </p>
-                        <Link 
+                        <Link
                             href="/dashboard/plans"
                             className="inline-block text-xs font-medium text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300"
                         >
-                            Set your weekly goals →
+                            Set your daily goals →
                         </Link>
                     </div>
                 )}
@@ -234,24 +252,7 @@ export function DashboardStats() {
                 <WeeklyTracker refreshTrigger={0} />
             </div>
 
-            {/* Motivation / Prompt */}
-            <div className="rounded-2xl bg-linear-to-r from-purple-600 to-indigo-600 p-6 text-white shadow-lg">
-                <div className="mb-2 flex items-center gap-2 opacity-80">
-                    <Target className="h-5 w-5" />
-                    <span className="text-xs font-bold uppercase tracking-wider">Focus Mode</span>
-                </div>
-                <h3 className="mb-4 text-lg font-semibold leading-relaxed">
-                    &quot;Success is the sum of small efforts, repeated day in and day out.&quot;
-                </h3>
-                {/* Visual indicator to click the center button */}
-                <div className="flex items-center gap-2 text-sm text-purple-100 opacity-90">
-                    <span>Tap the</span>
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-purple-600">
-                        <div className="h-2 w-2 rounded-full bg-current" />
-                    </div>
-                    <span>button below to start today&apos;s task.</span>
-                </div>
-            </div>
+
         </div>
     );
 }

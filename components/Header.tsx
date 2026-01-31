@@ -1,5 +1,5 @@
 "use client";
-
+import Link from "next/link";
 import { Menu, User, Bell } from "lucide-react";
 
 interface HeaderProps {
@@ -32,14 +32,14 @@ export function Header({ onMenuClick }: HeaderProps) {
 
                 <div className="h-8 w-px bg-zinc-200 dark:bg-zinc-800"></div>
 
-                <button className="flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1.5 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800">
+                <Link href="/dashboard/profile" className="flex items-center gap-2 rounded-full bg-zinc-100 px-3 py-1.5 transition-colors hover:bg-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800">
                     <div className="flex h-6 w-6 items-center justify-center rounded-full bg-purple-600 text-[10px] font-bold text-white">
                         JD
                     </div>
                     <span className="hidden text-sm font-medium text-zinc-700 dark:text-zinc-300 md:block">
                         John Doe
                     </span>
-                </button>
+                </Link>
             </div>
         </header>
     );

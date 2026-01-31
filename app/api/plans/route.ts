@@ -28,9 +28,9 @@ export async function GET(request: Request) {
         const today = new Date();
         const weekStart = getWeekStartDate(today);
 
-        const plan = await WeeklyPlan.findOne({ 
-            userId: new mongoose.Types.ObjectId(userId), 
-            weekStartDate: weekStart 
+        const plan = await WeeklyPlan.findOne({
+            userId: new mongoose.Types.ObjectId(userId),
+            weekStartDate: weekStart
         });
 
         if (!plan) {
@@ -59,7 +59,8 @@ export async function PUT(request: Request) {
             return NextResponse.json({ error: "Invalid user ID" }, { status: 400 });
         }
 
-        const { goals } = await request.json();
+        const { goals, summary } = await request.json();
+        console.log("DEBUG: Received goals to save:", JSON.stringify(goals, null, 2));
 
         const today = new Date();
         const weekStart = getWeekStartDate(today);
@@ -72,10 +73,12 @@ export async function PUT(request: Request) {
                 userEmail,
                 userId: userIdObjectId,
                 weekStartDate: weekStart,
-                goals: goals || []
+                goals: goals || [],
+                summary: summary || ""
             },
             { upsert: true, new: true, setDefaultsOnInsert: true }
         );
+        console.log("DEBUG: Saved plan result goals:", JSON.stringify(plan.goals, null, 2));
 
         return NextResponse.json({ success: true, data: plan });
     } catch (error) {

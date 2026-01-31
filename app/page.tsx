@@ -1,5 +1,10 @@
-import { LandingContent } from "@/components/LandingContent";
+import { LoginContent } from "@/components/LoginContent";
+import { Suspense } from "react";
 
 export default function Home() {
-  return <LandingContent />;
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginContent />
+    </Suspense>
+  );
 }
